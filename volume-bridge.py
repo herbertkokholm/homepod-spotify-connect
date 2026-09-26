@@ -30,6 +30,9 @@ ECHO_WINDOW = 1.0
 
 log = logging.getLogger("volume-bridge")
 
+# urllib/socket failures are OSError; bad or unexpected JSON is ValueError/KeyError
+HTTP_ERRORS = (OSError, ValueError, KeyError)
+
 last_volume = None          # 0-100, last value both sides agreed on
 muted_until = {"spotify": 0.0, "owntone": 0.0}
 
@@ -55,7 +58,7 @@ async def push(target, volume):
             value = round(volume * state["max"] / 100)
             await asyncio.to_thread(http, "POST", f"{GO_LIBRESPOT}/player/volume", {"volume": value})
         log.info("volume %d%% -> %s", volume, target)
-    except Exception as e:
+    except HTTP_ERRORS as e:
         # go-librespot rejects volume changes while no Spotify client is connected
         log.debug("could not set %s volume: %s", target, e)
 
@@ -94,7 +97,7 @@ async def forever(follow):
     while True:
         try:
             await follow()
-        except Exception as e:
+        except (websockets.WebSocketException, *HTTP_ERRORS) as e:
             log.warning("%s: %s, reconnecting", follow.__name__, e)
         await asyncio.sleep(3)
 
