@@ -12,7 +12,7 @@ Apple HomePod doesn't natively support Spotify Connect, limiting it to AirPlay f
 
 1. **Receive** Spotify Connect streams (via [go-librespot](https://github.com/devgianlu/go-librespot))
 2. **Forward** audio to HomePod (via [OwnTone](https://github.com/owntone/owntone-server)/AirPlay 2)
-3. **Sync** volume both ways — the Spotify slider sets the HomePod's own volume, and the HomePod's buttons/Siri move the Spotify slider
+3. **Sync** volume both ways — the Spotify slider sets the HomePod's own volume, and volume changes made on the HomePod itself move the Spotify slider
 
 The result: Your HomePod appears as a Spotify Connect device to any Spotify app on your network.
 
@@ -31,13 +31,13 @@ The result: Your HomePod appears as a Spotify Connect device to any Spotify app 
 ## Requirements
 
 ### Hardware
-- Raspberry Pi 4 or 5 (Pi 3B+ works but Pi 4+ recommended)
+- Raspberry Pi 4 or 5 (tested on a Pi 4; a Pi 3B+ should work but is untested)
 - MicroSD card (16GB minimum)
 - Apple HomePod or HomePod mini
 - Ethernet recommended — AirPlay audio is sensitive to weak Wi-Fi
 
 ### Software
-- Raspberry Pi OS / Debian Bookworm or Trixie (64-bit recommended)
+- Raspberry Pi OS / Debian Trixie (tested) or Bookworm, 64-bit recommended
 - Spotify Premium account
 
 ### Network
@@ -56,18 +56,21 @@ Flash Raspberry Pi OS (64-bit) with [Raspberry Pi Imager](https://www.raspberryp
 
 ```bash
 ssh pi@homepod-bridge.local
+sudo apt-get install -y git
 git clone https://github.com/herbertkokholm/homepod-spotify-connect.git
 cd homepod-spotify-connect
 sudo ./deploy.sh
 ```
+
+The repository is private, so the Pi needs GitHub access to clone it (e.g. `gh auth login` or a deploy key) — or copy `deploy.sh` and `volume-bridge.py` over with `scp` and run `deploy.sh` from that folder.
 
 The script is safe to re-run; re-running also updates go-librespot to its latest release.
 
 ### 3. Enable the HomePod in OwnTone
 
 1. Open `http://homepod-bridge.local:3689`
-2. Click the **speaker icon** in the top bar (Outputs)
-3. Enable your HomePod
+2. Open the outputs/volume menu (speaker icon in the player bar)
+3. Enable your HomePod — OwnTone remembers the selection
 
 ### 4. Play Music!
 
@@ -83,7 +86,7 @@ Settings are passed as environment variables to `deploy.sh`:
 | ------------------------ | ---------- | ------------------------------------- |
 | `SPOTIFY_DEVICE_NAME`    | `HomePod`  | Name shown in Spotify                 |
 | `SPOTIFY_BITRATE`        | `320`      | `96`, `160` or `320` kbps             |
-| `SPOTIFY_INITIAL_VOLUME` | `50`       | Volume (0–100) when a client connects |
+| `SPOTIFY_INITIAL_VOLUME` | `50`       | Volume (0–100) on first start; after that the last volume is remembered |
 | `GO_LIBRESPOT_VERSION`   | `latest`   | A release tag, e.g. `v0.10.2`         |
 
 ```bash
@@ -96,12 +99,12 @@ The generated go-librespot config lives in `/var/lib/go-librespot/config.yml`; r
 
 1. **go-librespot** implements the Spotify Connect protocol and writes raw PCM (s16le, 44.1 kHz) to a named pipe (`/srv/music/spotify`)
 2. **OwnTone** picks up the pipe from its library and streams it to the HomePod via AirPlay 2
-3. go-librespot runs with `external_volume`, so it never scales the audio itself. The **volume bridge** (`volume-bridge.py`) listens to both go-librespot's and OwnTone's websocket events and mirrors volume changes between them, so the HomePod's own volume is the only volume stage. Changes made on the HomePod itself (buttons, Siri, Home app) reach OwnTone and are mirrored back to Spotify too
+3. go-librespot runs with `external_volume`, so it never scales the audio itself. The **volume bridge** (`volume-bridge.py`) listens to both go-librespot's and OwnTone's websocket events and mirrors volume changes between them, so the HomePod's own volume is the only volume stage. Changes made on the HomePod itself (e.g. its touch controls) reach OwnTone and are mirrored back to Spotify too
 
 | Service                 | Runs as              | Port(s)                               |
 | ----------------------- | -------------------- | ------------------------------------- |
 | `go-librespot`          | `go-librespot`       | 3678 (API, localhost), random (Connect) |
-| `owntone`               | `owntone`            | 3689 (web UI), 3688 (websocket)       |
+| `owntone`               | `root` (package default, `uid` in `/etc/owntone.conf`) | 3689 (web UI/API), 3688 (websocket), 6600 (MPD) |
 | `homepod-volume-bridge` | dynamic user         | —                                     |
 
 ## Troubleshooting
@@ -133,9 +136,11 @@ curl -s -o /dev/null -w '%{http_code}\n' -H 'User-Agent: AirPlay/999.0.0' http:/
 
 ### Choppy or dropping audio
 
-Usually weak Wi-Fi. Use Ethernet if you can; otherwise disable Wi-Fi power saving:
+Usually weak Wi-Fi. Use Ethernet if you can; otherwise disable Wi-Fi power saving — right away, and persistently for the next reconnect/boot:
 
 ```bash
+sudo apt-get install -y iw
+sudo iw dev wlan0 set power_save off
 sudo nmcli con modify "<your Wi-Fi connection>" 802-11-wireless.powersave 2
 ```
 
