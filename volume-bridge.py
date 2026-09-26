@@ -11,10 +11,15 @@
 # go-librespot runs with external_volume, so it never scales the samples
 # itself; the HomePod's own volume is the only volume stage.
 #
+# If AIRPLAY_OUTPUT is set to an OwnTone output name, that output is also
+# (re)selected whenever Spotify starts playing - OwnTone doesn't reliably
+# restore its speaker selection after a restart.
+#
 
 import asyncio
 import json
 import logging
+import os
 import time
 import urllib.request
 
@@ -23,6 +28,7 @@ import websockets
 GO_LIBRESPOT = "http://127.0.0.1:3678"
 OWNTONE = "http://127.0.0.1:3689"
 OWNTONE_WS_PORT = 3688
+AIRPLAY_OUTPUT = os.environ.get("AIRPLAY_OUTPUT", "")
 
 # After pushing a volume to one side, ignore echoes from that side for this long.
 # Without it, fast slider moves bounce stale values back and the slider jitters.
@@ -63,6 +69,20 @@ async def push(target, volume):
         log.debug("could not set %s volume: %s", target, e)
 
 
+async def ensure_output():
+    try:
+        outputs = (await asyncio.to_thread(http, "GET", f"{OWNTONE}/api/outputs"))["outputs"]
+        output = next((o for o in outputs if o["name"] == AIRPLAY_OUTPUT), None)
+        if output is None:
+            log.warning("AirPlay output %r not found in OwnTone", AIRPLAY_OUTPUT)
+        elif not output["selected"]:
+            await asyncio.to_thread(http, "PUT", f"{OWNTONE}/api/outputs/{output['id']}",
+                                    {"selected": True})
+            log.info("selected AirPlay output %r", AIRPLAY_OUTPUT)
+    except HTTP_ERRORS as e:
+        log.warning("could not select AirPlay output %r: %s", AIRPLAY_OUTPUT, e)
+
+
 def is_echo(source, volume):
     return volume == last_volume or time.monotonic() < muted_until[source]
 
@@ -72,6 +92,8 @@ async def follow_spotify():
         log.info("connected to go-librespot")
         async for message in ws:
             event = json.loads(message)
+            if event.get("type") in ("will_play", "playing") and AIRPLAY_OUTPUT:
+                await ensure_output()
             if event.get("type") != "volume":
                 continue
             volume = round(event["data"]["value"] * 100 / event["data"]["max"])

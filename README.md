@@ -68,7 +68,13 @@ The script is safe to re-run; re-running also updates go-librespot to its latest
 
 1. Open `http://homepod-bridge.local:3689`
 2. Open the outputs/volume menu (speaker icon in the player bar)
-3. Enable your HomePod — OwnTone remembers the selection
+3. Enable your HomePod
+
+OwnTone doesn't reliably restore its speaker selection after a restart (e.g. after re-running `deploy.sh`). To make the bridge re-select the HomePod whenever Spotify starts playing, re-run the script once with the output name exactly as shown in OwnTone:
+
+```bash
+sudo AIRPLAY_OUTPUT="Living Room" ./deploy.sh
+```
 
 ### 4. Play Music!
 
@@ -86,6 +92,7 @@ Settings are passed as environment variables to `deploy.sh`:
 | `SPOTIFY_BITRATE`        | `320`      | `96`, `160` or `320` kbps             |
 | `SPOTIFY_INITIAL_VOLUME` | `50`       | Volume (0–100) on first start; after that the last volume is remembered |
 | `GO_LIBRESPOT_VERSION`   | `latest`   | A release tag, e.g. `v0.10.2`         |
+| `AIRPLAY_OUTPUT`         | —          | OwnTone output name to (re)select whenever Spotify starts playing. Remembered in `/etc/default/homepod-volume-bridge` |
 
 ```bash
 sudo SPOTIFY_DEVICE_NAME="Living Room HomePod" ./deploy.sh
@@ -97,7 +104,7 @@ The generated go-librespot config lives in `/var/lib/go-librespot/config.yml`; r
 
 1. **go-librespot** implements the Spotify Connect protocol and writes raw PCM (s16le, 44.1 kHz) to a named pipe (`/srv/music/spotify`)
 2. **OwnTone** picks up the pipe from its library and streams it to the HomePod via AirPlay 2
-3. go-librespot runs with `external_volume`, so it never scales the audio itself. The **volume bridge** (`volume-bridge.py`) listens to both go-librespot's and OwnTone's websocket events and mirrors volume changes between them, so the HomePod's own volume is the only volume stage. Changes made on the HomePod itself (e.g. its touch controls) reach OwnTone and are mirrored back to Spotify too
+3. go-librespot runs with `external_volume`, so it never scales the audio itself. The **volume bridge** (`volume-bridge.py`) listens to both go-librespot's and OwnTone's websocket events and mirrors volume changes between them (and, with `AIRPLAY_OUTPUT` set, selects the HomePod when playback starts), so the HomePod's own volume is the only volume stage. Changes made on the HomePod itself (e.g. its touch controls) reach OwnTone and are mirrored back to Spotify too
 
 | Service                 | Runs as              | Port(s)                               |
 | ----------------------- | -------------------- | ------------------------------------- |
@@ -147,6 +154,10 @@ sudo nmcli con modify "<your Wi-Fi connection>" 802-11-wireless.powersave 2
 1. `homepod-spotify-status` — is `go-librespot` running?
 2. `avahi-browse -tr _spotify-connect._tcp` should list it
 3. Make sure your phone is on the same network/subnet as the Pi
+
+### Spotify plays but there's no sound
+
+Check that the HomePod is still selected as an output in OwnTone (`curl -s localhost:3689/api/outputs`). If it keeps getting deselected, set `AIRPLAY_OUTPUT` (see [Enable the HomePod in OwnTone](#3-enable-the-homepod-in-owntone)).
 
 ### Audio Delay
 

@@ -12,6 +12,7 @@
 #
 #   # Optional overrides:
 #   sudo SPOTIFY_DEVICE_NAME="Living Room HomePod" SPOTIFY_BITRATE=160 ./deploy.sh
+#   sudo AIRPLAY_OUTPUT="Living Room" ./deploy.sh   # remembered for later runs
 #
 # Requirements:
 #   - Raspberry Pi 4 or 5 (arm64 or armhf)
@@ -30,6 +31,7 @@ DEVICE_NAME="${SPOTIFY_DEVICE_NAME:-HomePod}"
 BITRATE="${SPOTIFY_BITRATE:-320}"          # 96, 160 or 320
 INITIAL_VOLUME="${SPOTIFY_INITIAL_VOLUME:-50}"
 GO_LIBRESPOT_VERSION="${GO_LIBRESPOT_VERSION:-latest}"   # or a tag, e.g. v0.10.2
+AIRPLAY_OUTPUT="${AIRPLAY_OUTPUT:-}"       # OwnTone output name, e.g. "Living Room"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MUSIC_DIR="/srv/music"
@@ -39,6 +41,7 @@ SERVICE_USER="go-librespot"
 GO_LIBRESPOT_BIN="/usr/local/bin/go-librespot"
 GO_LIBRESPOT_DIR="/var/lib/go-librespot"
 BRIDGE_BIN="/usr/local/bin/homepod-volume-bridge"
+BRIDGE_ENV="/etc/default/homepod-volume-bridge"
 OWNTONE_CONFIG="/etc/owntone.conf"
 
 # ============================================================================
@@ -243,6 +246,12 @@ install_volume_bridge() {
 
     install -m 755 "$SCRIPT_DIR/volume-bridge.py" "$BRIDGE_BIN"
 
+    # Only (over)written when AIRPLAY_OUTPUT is given, so re-runs keep the setting
+    if [ -n "$AIRPLAY_OUTPUT" ]; then
+        echo "AIRPLAY_OUTPUT=\"$AIRPLAY_OUTPUT\"" > "$BRIDGE_ENV"
+        log_info "Bridge will keep AirPlay output '$AIRPLAY_OUTPUT' selected"
+    fi
+
     cat > /etc/systemd/system/homepod-volume-bridge.service << EOF
 [Unit]
 Description=HomePod Spotify Connect volume bridge (go-librespot <-> OwnTone)
@@ -251,6 +260,7 @@ Wants=go-librespot.service owntone.service
 
 [Service]
 DynamicUser=true
+EnvironmentFile=-$BRIDGE_ENV
 ExecStart=$BRIDGE_BIN
 Restart=always
 RestartSec=5
