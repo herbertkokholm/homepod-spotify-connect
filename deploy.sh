@@ -11,7 +11,7 @@
 #   sudo ./deploy.sh
 #
 #   # Optional overrides:
-#   sudo SPOTIFY_DEVICE_NAME="Kontor HomePod" SPOTIFY_BITRATE=160 ./deploy.sh
+#   sudo SPOTIFY_DEVICE_NAME="Living Room HomePod" SPOTIFY_BITRATE=160 ./deploy.sh
 #
 # Requirements:
 #   - Raspberry Pi 4 or 5 (arm64 or armhf)
@@ -80,6 +80,7 @@ check_architecture() {
 
 check_os() {
     if [ -f /etc/os-release ]; then
+        # shellcheck source=/dev/null
         . /etc/os-release
         OS_VERSION=$VERSION_CODENAME
         log_info "OS: $PRETTY_NAME"

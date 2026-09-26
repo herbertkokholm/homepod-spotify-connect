@@ -1,0 +1,8 @@
+version: 2
+updates:
+  # The only pinned dependencies are the GitHub Actions used by CI; everything
+  # else (OwnTone, go-librespot, Python packages) is installed at deploy time
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

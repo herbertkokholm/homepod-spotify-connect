@@ -62,8 +62,6 @@ cd homepod-spotify-connect
 sudo ./deploy.sh
 ```
 
-The repository is private, so the Pi needs GitHub access to clone it (e.g. `gh auth login` or a deploy key) — or copy `deploy.sh` and `volume-bridge.py` over with `scp` and run `deploy.sh` from that folder.
-
 The script is safe to re-run; re-running also updates go-librespot to its latest release.
 
 ### 3. Enable the HomePod in OwnTone
