@@ -13,6 +13,6 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: shellcheck
-        run: shellcheck deploy.sh
+        run: shellcheck deploy.sh tools/strip-desktop.sh
       - name: ruff
         run: pipx run ruff check volume-bridge.py

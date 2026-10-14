@@ -141,7 +141,7 @@ curl -s -o /dev/null -w '%{http_code}\n' -H 'User-Agent: AirPlay/999.0.0' http:/
 
 ### Choppy or dropping audio
 
-Usually weak Wi-Fi. Use Ethernet if you can; otherwise disable Wi-Fi power saving — right away, and persistently for the next reconnect/boot:
+OwnTone logs `Output delay detected ... resetting all outputs` each time. This is usually weak Wi-Fi, on the Pi or the HomePod (compare `ping` to both). Large downloads on the Pi make it worse: on a Raspberry Pi OS Desktop install, consider [`tools/strip-desktop.sh`](tools/README.md). Use Ethernet if you can; otherwise disable Wi-Fi power saving — right away, and persistently for the next reconnect/boot:
 
 ```bash
 sudo apt-get install -y iw
@@ -170,7 +170,9 @@ homepod-spotify-connect/
 ├── README.md
 ├── LICENSE
 ├── deploy.sh          # Installs and configures everything
-└── volume-bridge.py   # Two-way volume sync (installed as homepod-volume-bridge)
+├── volume-bridge.py   # Two-way volume sync (installed as homepod-volume-bridge)
+└── tools/
+    └── strip-desktop.sh  # Optional: turn a Desktop install into a headless server
 ```
 
 ## Credits
