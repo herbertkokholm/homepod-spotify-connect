@@ -159,6 +159,10 @@ sudo nmcli con modify "<your Wi-Fi connection>" 802-11-wireless.powersave 2
 
 Check that the HomePod is still selected as an output in OwnTone (`curl -s localhost:3689/api/outputs`). If it keeps getting deselected, set `AIRPLAY_OUTPUT` (see [Enable the HomePod in OwnTone](#3-enable-the-homepod-in-owntone)).
 
+If the HomePod isn't in that list at all, OwnTone missed its mDNS announcement (seen right after a reboot): `sudo systemctl restart owntone`.
+
+OwnTone's own pipe autostart can also fail (`Autostarting pipe ... failed` in its log, e.g. when its database is locked right after a restart). The volume bridge covers this: when Spotify plays and OwnTone isn't playing after 2 seconds, it starts the pipe itself and logs `started the pipe`.
+
 ### Audio Delay
 
 A 2–3 second delay on play/pause/skip is normal due to AirPlay buffering.
