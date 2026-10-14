@@ -357,7 +357,7 @@ print_summary() {
     echo "  OwnTone Web UI:  http://$IP:3689"
     echo ""
     echo "  NEXT STEPS"
-    echo "  1. Open http://$IP:3689 → Outputs (speaker icon, top bar)"
+    echo "  1. Open http://$IP:3689 → outputs/volume menu (speaker icon in the player bar)"
     echo "  2. Enable your HomePod"
     echo "  3. Spotify → Connect to a device → '$DEVICE_NAME'"
     echo ""
