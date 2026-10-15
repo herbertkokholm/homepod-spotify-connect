@@ -62,7 +62,7 @@ cd homepod-spotify-connect
 sudo ./deploy.sh
 ```
 
-The script is safe to re-run; re-running also updates go-librespot to its latest release.
+The script is safe to re-run. It also enables `unattended-upgrades`, so OwnTone and Debian security updates are installed automatically each day. go-librespot isn't an apt package: it's pinned in `deploy.sh` (bumped by Renovate), so `git pull && sudo ./deploy.sh` picks up a new release.
 
 ### 3. Enable the HomePod in OwnTone
 

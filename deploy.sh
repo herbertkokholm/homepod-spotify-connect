@@ -5,7 +5,8 @@
 #
 # Installs go-librespot + OwnTone to make a HomePod appear as a Spotify
 # Connect device, plus a bridge that keeps both volumes in sync.
-# Safe to re-run; re-running also updates go-librespot to the latest release.
+# Safe to re-run; re-running also installs the pinned go-librespot version.
+# OwnTone and Debian security updates are installed automatically.
 #
 # Usage (from a clone of this repo on the Pi):
 #   sudo ./deploy.sh
@@ -43,6 +44,7 @@ GO_LIBRESPOT_DIR="/var/lib/go-librespot"
 BRIDGE_BIN="/usr/local/bin/homepod-volume-bridge"
 BRIDGE_ENV="/etc/default/homepod-volume-bridge"
 OWNTONE_CONFIG="/etc/owntone.conf"
+AUTO_UPGRADES_CONF="/etc/apt/apt.conf.d/52homepod-unattended-upgrades"
 
 # ============================================================================
 # HELPER FUNCTIONS
@@ -134,6 +136,27 @@ install_owntone() {
     apt-get install -y -qq owntone > /dev/null
 
     log_info "OwnTone installed: $(dpkg-query -W -f='${Version}' owntone)"
+}
+
+configure_auto_updates() {
+    log_step "Configuring automatic updates..."
+
+    apt-get install -y -qq unattended-upgrades > /dev/null
+
+    # The stock config already covers Debian security updates; add OwnTone's
+    # repo (its Release file says "Origin: www.gyfgafguf.dk/raspbian")
+    cat > "$AUTO_UPGRADES_CONF" << 'EOF'
+Unattended-Upgrade::Origins-Pattern {
+    "origin=www.gyfgafguf.dk/raspbian";
+};
+EOF
+
+    cat > /etc/apt/apt.conf.d/20auto-upgrades << 'EOF'
+APT::Periodic::Update-Package-Lists "1";
+APT::Periodic::Unattended-Upgrade "1";
+EOF
+
+    log_info "Daily unattended upgrades enabled (Debian security + OwnTone)"
 }
 
 install_go_librespot() {
@@ -384,6 +407,7 @@ main() {
 
     install_prerequisites
     install_owntone
+    configure_auto_updates
     install_go_librespot
     setup_pipes
     configure_go_librespot
