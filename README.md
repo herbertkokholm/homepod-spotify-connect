@@ -91,7 +91,7 @@ Settings are passed as environment variables to `deploy.sh`:
 | `SPOTIFY_DEVICE_NAME`    | `HomePod`  | Name shown in Spotify                 |
 | `SPOTIFY_BITRATE`        | `320`      | `96`, `160` or `320` kbps             |
 | `SPOTIFY_INITIAL_VOLUME` | `50`       | Volume (0–100) on first start; after that the last volume is remembered |
-| `GO_LIBRESPOT_VERSION`   | `latest`   | A release tag, e.g. `v0.10.2`         |
+| `GO_LIBRESPOT_VERSION`   | `v0.10.4`  | A release tag, or `latest`. The default is bumped by Renovate |
 | `AIRPLAY_OUTPUT`         | —          | OwnTone output name to (re)select whenever Spotify starts playing. Remembered in `/etc/default/homepod-volume-bridge` |
 
 ```bash

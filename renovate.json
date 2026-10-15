@@ -1,0 +1,21 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "schedule": ["* * 1-7 * *"],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "go-librespot release downloaded by deploy.sh",
+      "managerFilePatterns": ["/^deploy\\.sh$/"],
+      "matchStrings": ["GO_LIBRESPOT_VERSION=\"\\$\\{GO_LIBRESPOT_VERSION:-(?<currentValue>v[^}]+)\\}\""],
+      "depNameTemplate": "devgianlu/go-librespot",
+      "datasourceTemplate": "github-releases"
+    }
+  ],
+  "packageRules": [
+    {
+      "matchDepNames": ["devgianlu/go-librespot"],
+      "schedule": ["at any time"]
+    }
+  ]
+}
