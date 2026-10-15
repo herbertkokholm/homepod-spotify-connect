@@ -1,7 +1,6 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended"],
-  "schedule": ["* * 1-7 * *"],
+  "extends": ["local>herbertkokholm/renovate-config"],
   "customManagers": [
     {
       "customType": "regex",
@@ -14,7 +13,9 @@
   ],
   "packageRules": [
     {
+      "description": "go-librespot updates immediately, in its own PR",
       "matchDepNames": ["devgianlu/go-librespot"],
+      "groupName": "go-librespot",
       "schedule": ["at any time"]
     }
   ]
