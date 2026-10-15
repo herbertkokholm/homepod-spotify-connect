@@ -17,7 +17,7 @@ sudo EXTRA_KEEP="cloudflared nginx" ./tools/strip-desktop.sh
 
 What it does:
 
-1. Marks the packages a headless bridge needs as manually installed, so autoremove can't take them away: SSH, git, NetworkManager/Wi-Fi, avahi, OwnTone, Python + websockets, curl, ALSA and sudo, plus anything in `EXTRA_KEEP`.
+1. Marks the packages a headless bridge needs as manually installed, so autoremove can't take them away: SSH, git, NetworkManager/Wi-Fi, avahi, OwnTone, Python + websockets, curl, ALSA, sudo and unattended-upgrades, plus anything in `EXTRA_KEEP`.
 2. Sets the default boot target to `multi-user.target` (no graphical login).
 3. Purges the desktop packages with `--autoremove`.
 4. Checks that every protected package is still installed. If one is missing it stops and tells you **not** to reboot, and which `apt-get install` command brings it back.

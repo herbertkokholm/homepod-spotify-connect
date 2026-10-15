@@ -62,7 +62,7 @@ cd homepod-spotify-connect
 sudo ./deploy.sh
 ```
 
-The script is safe to re-run. It also enables `unattended-upgrades`, so OwnTone and Debian security updates are installed automatically each day. go-librespot isn't an apt package: it's pinned in `deploy.sh` (bumped by Renovate), so `git pull && sudo ./deploy.sh` picks up a new release.
+The script is safe to re-run. It also enables `unattended-upgrades`, so OwnTone and Debian updates (stable and security, per Debian's stock config) are installed automatically each day. go-librespot isn't an apt package: it's pinned in `deploy.sh` (bumped by Renovate), so `git pull && sudo ./deploy.sh` picks up a new release.
 
 ### 3. Enable the HomePod in OwnTone
 
@@ -141,7 +141,7 @@ curl -s -o /dev/null -w '%{http_code}\n' -H 'User-Agent: AirPlay/999.0.0' http:/
 
 ### Choppy or dropping audio
 
-OwnTone logs `Output delay detected ... resetting all outputs` each time. This is usually weak Wi-Fi, on the Pi or the HomePod (compare `ping` to both). Large downloads on the Pi make it worse: on a Raspberry Pi OS Desktop install, consider [`tools/strip-desktop.sh`](tools/README.md). Use Ethernet if you can; otherwise disable Wi-Fi power saving — right away, and persistently for the next reconnect/boot:
+OwnTone logs `Output delay detected ... resetting all outputs` each time. This is usually weak Wi-Fi, on the Pi or the HomePod (compare `ping` to both). Large downloads on the Pi make it worse, including the daily automatic updates: on a Raspberry Pi OS Desktop install, consider [`tools/strip-desktop.sh`](tools/README.md). Use Ethernet if you can; otherwise disable Wi-Fi power saving — right away, and persistently for the next reconnect/boot:
 
 ```bash
 sudo apt-get install -y iw

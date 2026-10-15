@@ -22,7 +22,8 @@ thonny vlc xserver-xorg-core xwayland"
 # Several of these (e.g. openssh-server, git) are only installed as dependencies
 # of the desktop on some images, so autoremove would otherwise take them away.
 KEEP="openssh-server git network-manager wpasupplicant iw avahi-daemon owntone
-python3 python3-websockets curl ca-certificates alsa-utils sudo ${EXTRA_KEEP:-}"
+python3 python3-websockets curl ca-certificates alsa-utils sudo unattended-upgrades
+${EXTRA_KEEP:-}"
 
 installed() {
     # shellcheck disable=SC2086 # word splitting of the package lists is intended
