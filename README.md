@@ -62,7 +62,16 @@ cd homepod-spotify-connect
 sudo ./deploy.sh
 ```
 
-The script is safe to re-run. It also enables `unattended-upgrades`, so OwnTone and Debian updates (stable and security, per Debian's stock config) are installed automatically each day. go-librespot isn't an apt package: it's pinned in `deploy.sh` (bumped by Renovate), so `git pull && sudo ./deploy.sh` picks up a new release.
+The script is safe to re-run. It also enables `unattended-upgrades`, so OwnTone and Debian updates (stable and security, per Debian's stock config) are installed automatically each day. go-librespot isn't an apt package: it's pinned in `deploy.sh` (bumped by Renovate).
+
+The script also installs a nightly timer that keeps the Pi in step with `main`: around 04:00 it fetches, and if `main` has new commits, fast-forwards the clone and re-runs `deploy.sh`. Nothing reaches the Pi until you merge it, so a merged Renovate PR is rolled out the following night. To deploy right away:
+
+```bash
+sudo systemctl start homepod-auto-deploy
+journalctl -u homepod-auto-deploy -f
+```
+
+To turn it off: `sudo systemctl disable --now homepod-auto-deploy.timer`.
 
 ### 3. Enable the HomePod in OwnTone
 
@@ -84,14 +93,14 @@ sudo AIRPLAY_OUTPUT="Living Room" ./deploy.sh
 
 ## Configuration
 
-Settings are passed as environment variables to `deploy.sh`:
+Settings are passed as environment variables to `deploy.sh` and remembered for later runs (including the nightly auto-deploy) in `/etc/default/homepod-spotify-connect`:
 
 | Variable                 | Default    | Description                           |
 | ------------------------ | ---------- | ------------------------------------- |
 | `SPOTIFY_DEVICE_NAME`    | `HomePod`  | Name shown in Spotify                 |
 | `SPOTIFY_BITRATE`        | `320`      | `96`, `160` or `320` kbps             |
 | `SPOTIFY_INITIAL_VOLUME` | `50`       | Volume (0–100) on first start; after that the last volume is remembered |
-| `GO_LIBRESPOT_VERSION`   | `v0.10.4`  | A release tag, or `latest`. The default is bumped by Renovate |
+| `GO_LIBRESPOT_VERSION`   | pinned     | A release tag, or `latest`. The default is pinned in `deploy.sh` and bumped by Renovate; not remembered |
 | `AIRPLAY_OUTPUT`         | —          | OwnTone output name to (re)select whenever Spotify starts playing. Remembered in `/etc/default/homepod-volume-bridge` |
 
 ```bash

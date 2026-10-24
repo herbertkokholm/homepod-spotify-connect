@@ -13,7 +13,11 @@
 #
 #   # Optional overrides:
 #   sudo SPOTIFY_DEVICE_NAME="Living Room HomePod" SPOTIFY_BITRATE=160 ./deploy.sh
-#   sudo AIRPLAY_OUTPUT="Living Room" ./deploy.sh   # remembered for later runs
+#   sudo AIRPLAY_OUTPUT="Living Room" ./deploy.sh
+#   (overrides are remembered for later runs)
+#
+# A nightly timer re-runs this script when main has new commits; to deploy now:
+#   sudo systemctl start homepod-auto-deploy
 #
 # Requirements:
 #   - Raspberry Pi 4 or 5 (arm64 or armhf)
@@ -28,9 +32,14 @@ set -euo pipefail
 # CONFIGURATION
 # ============================================================================
 
-DEVICE_NAME="${SPOTIFY_DEVICE_NAME:-HomePod}"
-BITRATE="${SPOTIFY_BITRATE:-320}"          # 96, 160 or 320
-INITIAL_VOLUME="${SPOTIFY_INITIAL_VOLUME:-50}"
+# Settings from the previous run (SAVED_*) are the defaults for this one
+SETTINGS_FILE="/etc/default/homepod-spotify-connect"
+# shellcheck source=/dev/null
+[ -r "$SETTINGS_FILE" ] && . "$SETTINGS_FILE"
+
+DEVICE_NAME="${SPOTIFY_DEVICE_NAME:-${SAVED_DEVICE_NAME:-HomePod}}"
+BITRATE="${SPOTIFY_BITRATE:-${SAVED_BITRATE:-320}}"          # 96, 160 or 320
+INITIAL_VOLUME="${SPOTIFY_INITIAL_VOLUME:-${SAVED_INITIAL_VOLUME:-50}}"
 GO_LIBRESPOT_VERSION="${GO_LIBRESPOT_VERSION:-v0.10.5}"   # kept up to date by Renovate; "latest" also works
 AIRPLAY_OUTPUT="${AIRPLAY_OUTPUT:-}"       # OwnTone output name, e.g. "Living Room"
 
@@ -45,6 +54,7 @@ BRIDGE_BIN="/usr/local/bin/homepod-volume-bridge"
 BRIDGE_ENV="/etc/default/homepod-volume-bridge"
 OWNTONE_CONFIG="/etc/owntone.conf"
 AUTO_UPGRADES_CONF="/etc/apt/apt.conf.d/52homepod-unattended-upgrades"
+AUTO_DEPLOY_BIN="/usr/local/bin/homepod-auto-deploy"
 
 # ============================================================================
 # HELPER FUNCTIONS
@@ -366,6 +376,69 @@ EOF
     chmod +x /usr/local/bin/homepod-spotify-status
 }
 
+save_settings() {
+    cat > "$SETTINGS_FILE" << EOF
+# Written by deploy.sh: the settings of the last run, reused by the next one
+SAVED_DEVICE_NAME=$(printf %q "$DEVICE_NAME")
+SAVED_BITRATE=$(printf %q "$BITRATE")
+SAVED_INITIAL_VOLUME=$(printf %q "$INITIAL_VOLUME")
+EOF
+}
+
+install_auto_deploy() {
+    log_step "Installing nightly auto-deploy..."
+
+    # Re-runs deploy.sh from this clone when origin/main has moved. Git runs as
+    # the clone's owner, so root never touches (or trips over) the checkout.
+    cat > "$AUTO_DEPLOY_BIN" << EOF
+#!/bin/bash
+set -euo pipefail
+REPO="$SCRIPT_DIR"
+EOF
+    cat >> "$AUTO_DEPLOY_BIN" << 'EOF'
+git_as_owner() { runuser -u "$(stat -c %U "$REPO")" -- git -C "$REPO" "$@"; }
+
+git_as_owner fetch --quiet origin main
+if [ "$(git_as_owner rev-parse HEAD)" = "$(git_as_owner rev-parse FETCH_HEAD)" ]; then
+    echo "Already up to date"
+    exit 0
+fi
+git_as_owner merge --ff-only --quiet FETCH_HEAD
+exec "$REPO/deploy.sh"
+EOF
+    chmod 755 "$AUTO_DEPLOY_BIN"
+
+    cat > /etc/systemd/system/homepod-auto-deploy.service << EOF
+[Unit]
+Description=Re-run HomePod Spotify Connect deploy.sh when main has new commits
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=$AUTO_DEPLOY_BIN
+EOF
+
+    # At night, since a deploy restarts the services and interrupts playback
+    cat > /etc/systemd/system/homepod-auto-deploy.timer << 'EOF'
+[Unit]
+Description=Nightly HomePod Spotify Connect auto-deploy
+
+[Timer]
+OnCalendar=*-*-* 04:00
+RandomizedDelaySec=30m
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOF
+
+    systemctl daemon-reload
+    systemctl enable --now homepod-auto-deploy.timer --quiet
+
+    log_info "Auto-deploy checks main nightly (deploy now: sudo systemctl start homepod-auto-deploy)"
+}
+
 print_summary() {
     local IP
     IP=$(hostname -I | awk '{print $1}')
@@ -415,6 +488,8 @@ main() {
     configure_owntone
     start_services
     install_status_script
+    save_settings
+    install_auto_deploy
 
     print_summary
 }
