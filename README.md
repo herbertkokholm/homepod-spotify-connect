@@ -68,10 +68,12 @@ The script also installs a nightly timer that keeps the Pi in step with `main`: 
 
 ```bash
 sudo systemctl start homepod-auto-deploy
-journalctl -u homepod-auto-deploy -f
+journalctl -u homepod-auto-deploy -n 20   # systemctl itself prints nothing
 ```
 
 To turn it off: `sudo systemctl disable --now homepod-auto-deploy.timer`.
+
+**Upgrading from v2.2.0 or earlier:** the timer is installed by `deploy.sh`, so run `git pull && sudo ./deploy.sh` once by hand. Pass any custom settings (e.g. `SPOTIFY_DEVICE_NAME`) on that run; from then on they are remembered.
 
 ### 3. Enable the HomePod in OwnTone
 
@@ -135,6 +137,15 @@ sudo journalctl -u homepod-volume-bridge -f
 sudo tail -f /var/log/owntone.log
 ```
 
+### Auto-deploy doesn't pick up new commits
+
+```bash
+systemctl list-timers homepod-auto-deploy   # next/last run
+journalctl -u homepod-auto-deploy -n 20
+```
+
+It only fast-forwards. If you've edited or committed in the clone on the Pi, the merge fails and nothing is deployed: `git -C ~/homepod-spotify-connect status`, then discard or move those changes.
+
 ### HomePod refuses the connection (403 Forbidden)
 
 OwnTone logs `Response to GET /info ... was negative, aborting (403 Forbidden)`. There are two causes:
@@ -182,7 +193,7 @@ A 2–3 second delay on play/pause/skip is normal due to AirPlay buffering.
 homepod-spotify-connect/
 ├── README.md
 ├── LICENSE
-├── deploy.sh          # Installs and configures everything
+├── deploy.sh          # Installs and configures everything, incl. the nightly auto-deploy
 ├── volume-bridge.py   # Two-way volume sync (installed as homepod-volume-bridge)
 └── tools/
     └── strip-desktop.sh  # Optional: turn a Desktop install into a headless server
