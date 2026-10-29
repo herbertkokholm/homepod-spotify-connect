@@ -14,6 +14,7 @@
 #   # Optional overrides:
 #   sudo SPOTIFY_DEVICE_NAME="Living Room HomePod" SPOTIFY_BITRATE=160 ./deploy.sh
 #   sudo AIRPLAY_OUTPUT="Living Room" ./deploy.sh
+#   sudo SPOTIFY_LOGIN=device_auth ./deploy.sh   # tie the device to one account
 #   (overrides are remembered for later runs)
 #
 # A nightly timer re-runs this script when main has new commits; to deploy now:
@@ -40,6 +41,7 @@ SETTINGS_FILE="/etc/default/homepod-spotify-connect"
 DEVICE_NAME="${SPOTIFY_DEVICE_NAME:-${SAVED_DEVICE_NAME:-HomePod}}"
 BITRATE="${SPOTIFY_BITRATE:-${SAVED_BITRATE:-320}}"          # 96, 160 or 320
 INITIAL_VOLUME="${SPOTIFY_INITIAL_VOLUME:-${SAVED_INITIAL_VOLUME:-50}}"
+LOGIN="${SPOTIFY_LOGIN:-${SAVED_LOGIN:-zeroconf}}"            # zeroconf or device_auth
 GO_LIBRESPOT_VERSION="${GO_LIBRESPOT_VERSION:-v0.10.5}"   # kept up to date by Renovate; "latest" also works
 AIRPLAY_OUTPUT="${AIRPLAY_OUTPUT:-}"       # OwnTone output name, e.g. "Living Room"
 
@@ -218,6 +220,30 @@ setup_pipes() {
 configure_go_librespot() {
     log_step "Configuring go-librespot..."
 
+    # zeroconf: anyone on the LAN logs in from the Spotify app, nothing is stored.
+    # device_auth: one account, paired once at spotify.com/pair; the credentials
+    # are kept in credentials.json, which this script never overwrites.
+    local credentials
+    case "$LOGIN" in
+        zeroconf)
+            credentials="zeroconf_enabled: true
+zeroconf_backend: avahi
+credentials:
+  type: zeroconf
+  zeroconf:
+    persist_credentials: false"
+            ;;
+        device_auth)
+            credentials="zeroconf_enabled: false
+credentials:
+  type: device_auth"
+            ;;
+        *)
+            log_error "SPOTIFY_LOGIN must be zeroconf or device_auth, not: $LOGIN"
+            exit 1
+            ;;
+    esac
+
     # external_volume: Spotify's slider stays enabled, but the samples are left
     # untouched - the volume bridge applies it as the HomePod's AirPlay volume
     cat > "$GO_LIBRESPOT_DIR/config.yml" << EOF
@@ -234,12 +260,7 @@ external_volume: true
 volume_steps: 100
 initial_volume: $INITIAL_VOLUME
 
-zeroconf_enabled: true
-zeroconf_backend: avahi
-credentials:
-  type: zeroconf
-  zeroconf:
-    persist_credentials: false
+$credentials
 
 server:
   enabled: true
@@ -271,7 +292,7 @@ ReadWritePaths=$GO_LIBRESPOT_DIR $MUSIC_DIR
 WantedBy=multi-user.target
 EOF
 
-    log_info "go-librespot configured (device: $DEVICE_NAME, ${BITRATE} kbps)"
+    log_info "go-librespot configured (device: $DEVICE_NAME, ${BITRATE} kbps, login: $LOGIN)"
 }
 
 install_volume_bridge() {
@@ -382,6 +403,7 @@ save_settings() {
 SAVED_DEVICE_NAME=$(printf %q "$DEVICE_NAME")
 SAVED_BITRATE=$(printf %q "$BITRATE")
 SAVED_INITIAL_VOLUME=$(printf %q "$INITIAL_VOLUME")
+SAVED_LOGIN=$(printf %q "$LOGIN")
 EOF
 }
 
@@ -450,8 +472,15 @@ print_summary() {
     echo ""
     echo "  Device Name:     $DEVICE_NAME"
     echo "  Bitrate:         $BITRATE kbps"
+    echo "  Login:           $LOGIN"
     echo "  OwnTone Web UI:  http://$IP:3689"
     echo ""
+    if [ "$LOGIN" = "device_auth" ] && [ ! -s "$GO_LIBRESPOT_DIR/credentials.json" ]; then
+        echo "  PAIR WITH SPOTIFY (once)"
+        echo "  Go to spotify.com/pair and enter the code from:"
+        echo "    sudo journalctl -u go-librespot -n 20"
+        echo ""
+    fi
     echo "  NEXT STEPS"
     echo "  1. Open http://$IP:3689 → outputs/volume menu (speaker icon in the player bar)"
     echo "  2. Enable your HomePod"

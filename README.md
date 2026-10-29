@@ -102,6 +102,7 @@ Settings are passed as environment variables to `deploy.sh` and remembered for l
 | `SPOTIFY_DEVICE_NAME`    | `HomePod`  | Name shown in Spotify                 |
 | `SPOTIFY_BITRATE`        | `320`      | `96`, `160` or `320` kbps             |
 | `SPOTIFY_INITIAL_VOLUME` | `50`       | Volume (0–100) on first start; after that the last volume is remembered |
+| `SPOTIFY_LOGIN`          | `zeroconf` | `zeroconf`: anyone on the network connects from the Spotify app. `device_auth`: one account, paired once at spotify.com/pair (see [Spotify times out when connecting](#spotify-times-out-when-connecting-missing-blob)) |
 | `GO_LIBRESPOT_VERSION`   | pinned     | A release tag, or `latest`. The default is pinned in `deploy.sh` and bumped by Renovate; not remembered |
 | `AIRPLAY_OUTPUT`         | —          | OwnTone output name to (re)select whenever Spotify starts playing. Remembered in `/etc/default/homepod-volume-bridge` |
 
@@ -168,6 +169,17 @@ sudo apt-get install -y iw
 sudo iw dev wlan0 set power_save off
 sudo nmcli con modify "<your Wi-Fi connection>" 802-11-wireless.powersave 2
 ```
+
+### Spotify times out when connecting ("missing blob")
+
+`sudo journalctl -u go-librespot` logs `failed handling zeroconf add user request error="missing blob"` every few seconds. Since late October 2026, Spotify clients log in to zeroconf devices with a `loginId` instead of an encrypted blob, which go-librespot can't use yet ([go-librespot#433](https://github.com/devgianlu/go-librespot/issues/433)). Until that's fixed, pair the device with one account instead:
+
+```bash
+sudo SPOTIFY_LOGIN=device_auth ./deploy.sh
+sudo journalctl -u go-librespot -n 20   # enter the code it shows at spotify.com/pair
+```
+
+The device then shows up in Spotify for that account only, on any network. Switch back with `SPOTIFY_LOGIN=zeroconf`.
 
 ### "HomePod" doesn't appear in Spotify
 
