@@ -15,6 +15,7 @@
 #   sudo SPOTIFY_DEVICE_NAME="Living Room HomePod" SPOTIFY_BITRATE=160 ./deploy.sh
 #   sudo AIRPLAY_OUTPUT="Living Room" ./deploy.sh
 #   sudo SPOTIFY_LOGIN=device_auth ./deploy.sh   # tie the device to one account
+#   sudo SPOTIFY_DEVICE_GROUP=true ./deploy.sh   # show as a speaker group (stereo pair)
 #   (overrides are remembered for later runs)
 #
 # A nightly timer re-runs this script when main has new commits; to deploy now:
@@ -42,6 +43,7 @@ DEVICE_NAME="${SPOTIFY_DEVICE_NAME:-${SAVED_DEVICE_NAME:-HomePod}}"
 BITRATE="${SPOTIFY_BITRATE:-${SAVED_BITRATE:-320}}"          # 96, 160 or 320
 INITIAL_VOLUME="${SPOTIFY_INITIAL_VOLUME:-${SAVED_INITIAL_VOLUME:-50}}"
 LOGIN="${SPOTIFY_LOGIN:-${SAVED_LOGIN:-zeroconf}}"            # zeroconf or device_auth
+DEVICE_GROUP="${SPOTIFY_DEVICE_GROUP:-${SAVED_DEVICE_GROUP:-false}}"  # true: speaker-group icon in Spotify
 GO_LIBRESPOT_VERSION="${GO_LIBRESPOT_VERSION:-v0.10.6}"   # kept up to date by Renovate; "latest" also works
 AIRPLAY_OUTPUT="${AIRPLAY_OUTPUT:-}"       # OwnTone output name, e.g. "Living Room"
 
@@ -244,11 +246,20 @@ credentials:
             ;;
     esac
 
+    case "$DEVICE_GROUP" in
+        true|false) ;;
+        *)
+            log_error "SPOTIFY_DEVICE_GROUP must be true or false, not: $DEVICE_GROUP"
+            exit 1
+            ;;
+    esac
+
     # external_volume: Spotify's slider stays enabled, but the samples are left
     # untouched - the volume bridge applies it as the HomePod's AirPlay volume
     cat > "$GO_LIBRESPOT_DIR/config.yml" << EOF
 device_name: "$DEVICE_NAME"
 device_type: speaker
+device_is_group: $DEVICE_GROUP
 bitrate: $BITRATE
 
 audio_backend: pipe
@@ -404,6 +415,7 @@ SAVED_DEVICE_NAME=$(printf %q "$DEVICE_NAME")
 SAVED_BITRATE=$(printf %q "$BITRATE")
 SAVED_INITIAL_VOLUME=$(printf %q "$INITIAL_VOLUME")
 SAVED_LOGIN=$(printf %q "$LOGIN")
+SAVED_DEVICE_GROUP=$(printf %q "$DEVICE_GROUP")
 EOF
 }
 

@@ -103,6 +103,7 @@ Settings are passed as environment variables to `deploy.sh` and remembered for l
 | `SPOTIFY_BITRATE`        | `320`      | `96`, `160` or `320` kbps             |
 | `SPOTIFY_INITIAL_VOLUME` | `50`       | Volume (0–100) on first start; after that the last volume is remembered |
 | `SPOTIFY_LOGIN`          | `zeroconf` | `zeroconf`: anyone on the network connects from the Spotify app. `device_auth`: one account, paired once at spotify.com/pair (see [Spotify times out when connecting](#spotify-times-out-when-connecting-missing-blob)) |
+| `SPOTIFY_DEVICE_GROUP`   | `false`    | `true` shows the device as a speaker group in Spotify, e.g. for a HomePod stereo pair. Only the icon changes |
 | `GO_LIBRESPOT_VERSION`   | pinned     | A release tag, or `latest`. The default is pinned in `deploy.sh` and bumped by Renovate; not remembered |
 | `AIRPLAY_OUTPUT`         | —          | OwnTone output name to (re)select whenever Spotify starts playing. Remembered in `/etc/default/homepod-volume-bridge` |
 
