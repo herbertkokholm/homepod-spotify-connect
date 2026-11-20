@@ -42,7 +42,7 @@ DEVICE_NAME="${SPOTIFY_DEVICE_NAME:-${SAVED_DEVICE_NAME:-HomePod}}"
 BITRATE="${SPOTIFY_BITRATE:-${SAVED_BITRATE:-320}}"          # 96, 160 or 320
 INITIAL_VOLUME="${SPOTIFY_INITIAL_VOLUME:-${SAVED_INITIAL_VOLUME:-50}}"
 LOGIN="${SPOTIFY_LOGIN:-${SAVED_LOGIN:-zeroconf}}"            # zeroconf or device_auth
-GO_LIBRESPOT_VERSION="${GO_LIBRESPOT_VERSION:-v0.10.5}"   # kept up to date by Renovate; "latest" also works
+GO_LIBRESPOT_VERSION="${GO_LIBRESPOT_VERSION:-v0.10.6}"   # kept up to date by Renovate; "latest" also works
 AIRPLAY_OUTPUT="${AIRPLAY_OUTPUT:-}"       # OwnTone output name, e.g. "Living Room"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
